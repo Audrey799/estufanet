@@ -2,6 +2,7 @@ import json, sqlite3, logging
 from datetime import datetime
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query
 from pydantic import BaseModel
+from fastapi.responses import FileResponse
 
 # ---------- LOGS (console + arquivo, sempre com timestamp) ----------
 logging.basicConfig(
@@ -73,6 +74,10 @@ async def transmitir(dado):
 @app.get("/")
 def raiz():
     return {"status": "EstufaNet no ar"}
+
+@app.get("/painel")
+def painel():
+    return FileResponse("index.html")
 
 @app.get("/historico")
 def historico(device_id: str | None = None,
