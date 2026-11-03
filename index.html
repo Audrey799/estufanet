@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>EstufaNet - Painel</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; padding: 0 10px; }
+  .alerta { color: #b00020; }
+  #status { font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>EstufaNet - Painel</h1>
+<p>Tempo real: <span id="status">conectando...</span></p>
+
+<p>
+  Limiar de temperatura (°C):
+  <input id="lim" type="number" step="0.5" style="width:70px">
+  <button onclick="salvarLimiar()">Salvar</button>
+  <span id="msgLim"></span>
+</p>
+
+<canvas id="grafico" height="110"></canvas>
+
+<h2>Alertas recentes</h2>
+<ul id="alertas"></ul>
+
+<script>
+const cores = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4"];
+const series = {};   // device_id -> dataset do gráfico
+
+const grafico = new Chart(document.getElementById("grafico"), {
+  type: "scatter",
+  data: { datasets: [] },
+  options: {
+    animation: false,
+    scales: {
+      x: { ticks: { callback: v => new Date(v).toLocaleTimeString() } },
+      y: { title: { display: true, text: "Temperatura (°C)" } }
+    }
+  }
+});
+
+function addPonto(d) {
+  if (!series[d.device_id]) {
+    const cor = cores[Object.keys(series).length % cores.length];
+    series[d.device_id] = { label: d.device_id, data: [], showLine: true,
+                            borderColor: cor, backgroundColor: cor, pointRadius: 2 };
+    grafico.data.datasets.push(series[d.device_id]);
+  }
+  const ds = series[d.device_id];
+  ds.data.push({ x: Date.parse(d.ts), y: d.temp });
+  if (ds.data.length > 60) ds.data.shift();
+  grafico.update();
+}
+
+function addAlerta(a) {
+  const li = document.createElement("li");
+  li.className = "alerta";
+  li.textContent = `${a.ts} - ${a.device_id}: ${a.temp} °C`;
+  const lista = document.getElementById("alertas");
+  lista.prepend(li);
+  while (lista.children.length > 10) lista.removeChild(lista.lastChild);
+}
+
+// HTTP: histórico, alertas e limiar ao abrir a página
+fetch("/historico?limite=100").then(r => r.json())
+  .then(l => l.reverse().forEach(addPonto));
+fetch("/alertas?limite=10").then(r => r.json())
+  .then(l => l.reverse().forEach(addAlerta));
+fetch("/limiar").then(r => r.json())
+  .then(d => document.getElementById("lim").value = d.temp);
+
+// HTTP: alterar limiar
+function salvarLimiar() {
+  const valor = parseFloat(document.getElementById("lim").value);
+  fetch("/limiar", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ valor })
+  }).then(r => r.json())
+    .then(d => document.getElementById("msgLim").textContent = "salvo: " + d.temp);
+}
+
+// WebSocket: tempo real
+function conectar() {
+  const ws = new WebSocket("ws://" + location.host + "/ws/painel");
+  ws.onopen = () => document.getElementById("status").textContent = "conectado";
+  ws.onmessage = e => {
+    const d = JSON.parse(e.data);
+    if (d.tipo === "leitura") {
+      addPonto(d);
+      if (d.alerta) addAlerta(d);
+    }
+  };
+  ws.onclose = () => {
+    document.getElementById("status").textContent = "desconectado, tentando de novo...";
+    setTimeout(conectar, 3000);
+  };
+}
+conectar();
+</script>
+</body>
+</html>
