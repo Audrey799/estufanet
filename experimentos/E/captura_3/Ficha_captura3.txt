@@ -1,0 +1,106 @@
+# Captura 3a: TCP vs UDP (Experimento D)
+
+Arquivos: `captura3a_tcp_udp_normal.pcapng` e `captura3b_tcp_udp_degradada.pcapng`
+Script: `microteste.py` (servidor e cliente), 1000 mensagens de ~100 bytes, porta 9000, loopback.
+Mesma carga nos dois protocolos: cada mensagem é `i|` + 100 caracteres (+ `\n` no TCP). Clumsy desligado.
+
+## Dados gerais das capturas
+
+| Item | 3a (rede normal) | 3b (rede degradada) |
+|---|---|---|
+| Data | 04/11/2026 | 04/11/2026 |
+| Primeiro / último pacote | 08:21:44 / 08:24:51 | 08:40:58 / 08:42:47 |
+| Duração da captura | 00:03:06 (186,742 s) | 00:01:49 (109,535 s) |
+| Pacotes capturados | 4.367 | 1.743 |
+| Descartados | 0 (0,0%) | 0 (0,0%) |
+| Bytes capturados | 466.231 | 313.031 |
+| Tamanho do arquivo | 609 kB | 369 kB |
+| Interface | Npcap Loopback Adapter (`\Device\NPF_Loopback`) | idem |
+| Filtro de captura | nenhum | nenhum |
+| Ferramenta | Wireshark 4.6.9 (Dumpcap), Windows 11 | idem |
+| Clumsy | desligado | ligado (parâmetros abaixo) |
+
+A duração das capturas inclui tempo ocioso antes e depois do teste, por isso a taxa média
+de pacotes por segundo não representa o microteste. O teste em si dura frações de segundo.
+
+## Cenário da 3b (rede degradada)
+
+- Ferramenta de degradação: Clumsy.
+- Filtro do Clumsy: `udp.DstPort == 9000 or tcp.DstPort == 9000` **[confirmar]**
+- Lag: 100 ms **[confirmar]** | Drop: 5% **[confirmar]** | demais funções desmarcadas **[confirmar]**
+- Rodadas: 1.
+
+## Resultados do microteste (saída do script)
+
+| Condição | Protocolo | Enviados | Recebidos | Perdidos | Fora de ordem | Tempo de envio no cliente (ms) |
+|---|---|---|---|---|---|---|
+| Normal | TCP | 1000 | 1000 | 0 | 0 | 17,7 |
+| Normal | UDP | 1000 | 1000 | 0 | 0 | 15,5 |
+| Degradada | TCP | 1000 | 1000 | 0 | 0 | 1292,3 |
+| Degradada | UDP | 1000 | 931 | 69 (6,9%) | 0 | 19,5 |
+
+- O tempo do TCP foi cerca de 73 vezes maior com a rede degradada (17,7 para 1292,3 ms).
+  O do UDP mudou pouco (15,5 para 19,5 ms), porque o UDP não espera confirmação.
+- O tempo do cliente mede só o envio local. Ele não mede a entrega e não indica qual protocolo é melhor.
+- Perda UDP observada: 6,9% em uma rodada, com Drop configurado de 5%. Em uma única rodada a perda
+  pode variar, então o valor não deve ser tratado como taxa exata.
+- Fora de ordem = 0 nos dois protocolos. No loopback, com atraso constante, os pacotes não se reordenam.
+  Isso não permite concluir que o UDP mantém a ordem em redes reais.
+
+## Evidências do Wireshark (3b)
+
+Dados do Clumsy: Filtro:udp.DstPort == 9000 or tcp.DstPort == 9000; Lag 100ms; Drop 0,05
+
+### TCP (filtro `tcp.port == 9000`): 15 pacotes (0,9% do total)
+
+- Conexão `127.0.0.1:59403 -> 127.0.0.1:9000`.
+- Handshake: `[SYN]` (pacote 345), `[SYN, ACK]` (346), `[ACK]` (347), todos com Length de 56, 56 e 44 bytes.
+- O `[ACK]` final do handshake chegou 136,6 ms depois do `[SYN, ACK]` (48,507862 s até 48,644494 s).
+  Isso é compatível com o Lag de 100 ms aplicado aos pacotes do cliente para a porta 9000.
+- As 1000 mensagens foram enviadas em **5 segmentos de dados** `[PSH, ACK]`, com Len de 103, 32.862, 32.418, 447
+  e 39.060 bytes. O último vem junto com o `[FIN]`.
+- Soma dos dados: 104.890 bytes, que bate com o cálculo das 1000 mensagens (10 de 103 B, 90 de 104 B e
+  900 de 105 B) e com o número de sequência final (Ack = 104.892, contando o FIN).
+- Consequência: o TCP é um fluxo de bytes e **não preserva as fronteiras das mensagens**. Por isso o script
+  separa as mensagens por `\n`. Poucos pacotes significam poucas chances de perda.
+- Retransmissões TCP na porta 9000: **0** (filtro `tcp.port == 9000 && tcp.analysis.retransmission` sem resultados).
+- Conversa TCP (Estatísticas, Conversas): 15 pacotes, 106 kB, duração de 0,469 s, 8 pacotes do cliente para o
+  servidor (105 kB) e 7 do servidor para o cliente (320 bytes, só confirmações).
+
+### UDP (filtro `udp.port == 9000`): 931 pacotes (53,4% do total)
+
+- Fluxo `127.0.0.1:54073 -> 127.0.0.1:9000`, um datagrama por mensagem, sem handshake e sem confirmação.
+- Frame de 134 bytes para as primeiras mensagens (payload de 102 B), 135 B e 136 B nas seguintes, porque o
+  número de dígitos do contador cresce. Camadas: Null/Loopback, IPv4, UDP, Data.
+- Conversa UDP: 931 pacotes, 127 kB, duração de 0,081 s, nenhum pacote no sentido servidor para cliente.
+- **O número de datagramas capturados (931) é igual ao de recebidos pelo servidor (931).**
+
+### Comparação TCP e UDP
+
+| Métrica (3b) | TCP | UDP |
+|---|---|---|
+| Pacotes na captura | 15 | 931 |
+| Bytes na captura | 106 kB | 127 kB |
+| Duração da conversa | 0,469 s | 0,081 s |
+| Mensagens entregues | 1000 de 1000 | 931 de 1000 |
+| Confirmações do receptor | sim (7 pacotes) | nenhuma |
+
+- O TCP usou menos bytes no total (106 kB contra 127 kB) mesmo entregando mais mensagens, porque o
+  cabeçalho é dividido por segmentos grandes. No UDP cada mensagem paga seu próprio cabeçalho
+  (IP, UDP e enlace, cerca de 32 bytes por datagrama).
+
+## Cuidado metodológico
+
+- A captura mostra 931 datagramas UDP, o mesmo número que o servidor contou. Isso indica que, neste cenário,
+  o Wireshark registrou o tráfego **depois** do descarte feito pelo Clumsy. Portanto a captura sozinha não
+  mostra os 69 datagramas perdidos. A perda UDP é **inferida** pela diferença entre os 1000 enviados e os
+  931 vistos na captura e contados pelo servidor, e as duas fontes concordam.
+- O tempo de envio do cliente (1292,3 ms no TCP) é uma métrica da aplicação. A duração da conversa na
+  captura (0,469 s) é uma métrica de rede. Os dois valores diferem e não devem ser misturados.
+  A diferença não foi investigada. Uma hipótese, não verificada, é o enfileiramento dos pacotes pelo Clumsy antes
+  de eles chegarem à captura.
+- Comparação feita com a mesma carga nos dois protocolos. TCP e UDP têm garantias diferentes (entrega, ordem,
+  controle de fluxo), e o resultado compara trade-offs, sem afirmar equivalência funcional.
+- As duas capturas contêm tráfego alheio ao microteste no loopback (por exemplo `PUT /api/v1/call` nas
+  portas 49674 e 59xxx, e tráfego entre as portas 54016 e 54022). A análise usa sempre os filtros da porta 9000.
+

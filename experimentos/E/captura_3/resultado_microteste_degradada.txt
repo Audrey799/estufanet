@@ -1,0 +1,7 @@
+servidor:
+TCP: recebidos=1000 perdidos=0 fora_de_ordem=0
+UDP: recebidos=931 perdidos=69 fora_de_ordem=0
+
+cliente:
+TCP enviou 1000 msgs em 1292.3 ms
+UDP enviou 1000 msgs em 19.5 ms
