@@ -1,0 +1,61 @@
+Captura 1: captura1_conexao.pcapng
+- Data e hora: 04/11/2026, das 06:36:02 às 06:40:37 (duração 00:04:35 = 275,202 s)
+- Pacotes capturados: 2.747 | Descartados: 0 (0,0%) | Tamanho: 358 kB
+- Taxa média: 10,0 pacotes/s | Tamanho médio do pacote: 98 B | Total: 269.029 bytes
+- Interface: Npcap Loopback Adapter (\Device\NPF_Loopback), encapsulamento NULL/Loopback
+- Filtro de captura: nenhum
+- Ferramenta: Wireshark 4.6.9 (Dumpcap), Windows 11
+- Filtros de exibição usados: tcp.port == 8000, tcp.stream eq 180, websocket,
+  tcp.port == 8000 && tcp.analysis.retransmission
+- Cenário: sensor (sensor.py) conectado ao servidor (server.py) em loopback,
+  rede sem degradação (Clumsy desligado)
+- Pacotes na porta 8000: 252 de 2.747 (9,2%). A conexão do sensor analisada
+  (tcp.stream eq 180) tem 135 pacotes (4,9%).
+
+Handshake TCP (conexão 127.0.0.1:65373 -> 127.0.0.1:8000, pacotes 2088 a 2090)
+- [SYN]      65373 -> 8000, 56 B, t = 216,914643 s
+- [SYN, ACK] 8000 -> 65373, 56 B, t = 216,914728 s
+- [ACK]      65373 -> 8000, 44 B, t = 216,914772 s
+- Tempo do handshake (SYN até ACK): 129,2 µs (coincide com o iRTT do Wireshark)
+
+Upgrade para WebSocket (pacotes 2091 e 2093)
+- GET /ws HTTP/1.1: 310 B (payload TCP de 266 B), cabeçalhos Upgrade: websocket,
+  Connection: Upgrade, Sec-WebSocket-Version: 13,
+  Sec-WebSocket-Extensions: permessage-deflate, User-Agent: Python/3.14 websockets/16.0
+- HTTP/1.1 101 Switching Protocols: 327 B
+- Tempo entre o GET /ws e o 101: 2,1 ms (216,915406 s até 216,917509 s)
+
+Mensagens WebSocket (frames de texto)
+- Frames do sensor: marcados [MASKED] (Mask = True, exigência do RFC 6455 para
+  cliente -> servidor); frames do servidor não são mascarados.
+- Compressão permessage-deflate ativa (Per-Message Compressed = True, RSV1),
+  por isso o JSON aparece comprimido no Wireshark. Exemplo: payload de 14 bytes.
+- Tamanho do frame na rede: leitura de 127 B na primeira mensagem e 62 a 66 B nas
+  seguintes; ack do servidor de 117 B na primeira e 54 a 60 B nas seguintes
+  (a compressão com contexto reaproveitado reduz mensagens repetidas).
+- Intervalo entre leituras consecutivas (5 amostras, pacotes 2095 a 2152):
+  1,015 a 1,027 s (sleep de 1 s do sensor mais o RTT).
+
+RTT
+- RTT de transporte (TCP): 32,7 µs para o ACK do segmento do pacote 2129
+  (amostra única); iRTT do handshake: 129,2 µs.
+- RTT de aplicação medido no fio (da leitura ao ack, 5 amostras): 7,75; 9,04; 9,18;
+  14,45 e 15,66 ms (média aprox. 11,2 ms).
+- O RTT da aplicação é cerca de 300 vezes maior que o de transporte, porque inclui
+  validação, gravação no SQLite e repasse ao painel (métricas de camadas diferentes).
+- RTT impresso pelo sensor.py em ms: 7.98 , 14.93 , 9.36 ...
+
+Retransmissões TCP (porta 8000): 0
+
+Observações
+- O arquivo contém tráfego alheio ao EstufaNet no loopback: PUT /api/v1/call e
+  respostas 200 OK nas portas 49674 e 585xx, que incluem um [TCP Retransmission] e um
+  [TCP ZeroWindow] nos primeiros segundos. Esses eventos NÃO são da porta 8000.
+- Há tentativas de conexão à porta 8000 recusadas ([SYN] seguido de [RST, ACK],
+  em IPv6 ::1 e IPv4) a cada cerca de 4 s antes de o servidor entrar no ar
+  (primeiras em 2,6 s). A origem não foi identificada.
+- O arquivo tem mais de uma sessão WebSocket: aparecem frames Ping/Pong a cada 20 s
+  (89,3; 109,3; 129,3; 149,3 s), compatíveis com o keepalive padrão da biblioteca
+  websockets. Os prints usam a conexão tcp.stream eq 180.
+- O que mostra: handshake TCP, upgrade HTTP para WebSocket, mensagens com
+  máscara e compressão, e RTT de transporte e de aplicação em rede sem degradação.
