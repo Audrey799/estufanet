@@ -1,0 +1,19 @@
+Captura 2: captura2_degradada.pcapng
+- Data e hora: 03/11/2026, das 20:38:55 às 20:48:09 (duração 00:09:13 = 553,997 s)
+- Pacotes capturados: 14.826 | Descartados: 0 (0,0%) | Tamanho: 1.470 kB
+- Taxa média: 26,8 pacotes/s | Tamanho médio do pacote: 67 B | Total: 987.339 bytes
+- Interface: Npcap Loopback Adapter (\Device\NPF_Loopback), encapsulamento NULL/Loopback
+- Filtro de captura: nenhum
+- Ferramenta: Wireshark 4.6.9 (Dumpcap), Windows 11
+- Filtro de exibição: tcp.port == 8000 && tcp.analysis.retransmission
+- Cenário: experimentos.py (condição "degradada") com Clumsy ligado
+  (filtro do Clumsy: tcp.DstPort == 8000 or tcp.SrcPort == 8000;
+   Lag 100 ms; Drop 5%; demais funções desmarcadas), tráfego em loopback
+- Retransmissões TCP na porta 8000: 98 de 14.826 pacotes (0,7%)
+- RTT de transporte (fluxo 127.0.0.1:8000 ↔ :58618): base de aproximadamente
+  0,1 a 0,15 s, com picos de 0,5 s a cerca de 4,7 s, compatíveis com
+  retransmissões e backoff do temporizador de retransmissão (RTO)
+- Observação: a captura inclui tráfego alheio ao EstufaNet no loopback
+  (PUT /api/v1/call e tentativas recusadas em IPv6); a análise usa sempre
+  o filtro tcp.port == 8000
+- O que mostra: efeito de atraso e perda simulados sobre o TCP
