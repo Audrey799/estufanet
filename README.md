@@ -206,4 +206,15 @@ e a ficha com data, filtros, cenário e observações.
 - Documentação do Chart.js: https://www.chartjs.org
 - Documentação do Wireshark: https://www.wireshark.org/docs
 - Clumsy: https://jagt.github.io/clumsy
-- [acrescentar o livro-texto da disciplina e outras fontes usadas no relatório]
+-  Python Software Foundation. *asyncio: Asynchronous I/O*. Python Documentation. https://docs.python.org/3/library/asyncio.html
+-  SQLite. *SQLite Documentation*. https://www.sqlite.org/docs.html 
+- J. F. Kurose e K. W. Ross. *Redes de Computadores e a Internet: Uma Abordagem Top-Down*. 8. ed. São Paulo: Pearson, 2021.
+- A. S. Tanenbaum e D. J. Wetherall. *Redes de Computadores*. 5. ed. São Paulo: Pearson, 2011.
+- R. Fielding, M. Nottingham e J. Reschke. *HTTP Semantics*. IETF, RFC 9110, 2022. https://www.rfc-editor.org/rfc/rfc9110
+- I. Fette e A. Melnikov. *The WebSocket Protocol*. IETF, RFC 6455, 2011. https://www.rfc-editor.org/rfc/rfc6455
+- W. Eddy. *Transmission Control Protocol (TCP)*. IETF, RFC 9293, 2022. https://www.rfc-editor.org/rfc/rfc9293
+- J. Postel. *User Datagram Protocol*. IETF, RFC 768, 1980. https://www.rfc-editor.org/rfc/rfc768
+- V. Paxson, M. Allman, J. Chu e M. Sargent. *Computing TCP's Retransmission Timer*. IETF, RFC 6298, 2011. https://www.rfc-editor.org/rfc/rfc6298
+- T. Bray. *The JavaScript Object Notation (JSON) Data Interchange Format*. IETF, RFC 8259, 2017. https://www.rfc-editor.org/rfc/rfc8259
+-  C. Sanders. *Practical Packet Analysis: Using Wireshark to Solve Real-World Network Problems*. 3. ed. San Francisco: No Starch Press, 2017.
+- S. Hemminger. *Network Emulation with NetEm*. linux.conf.au, 2005.
