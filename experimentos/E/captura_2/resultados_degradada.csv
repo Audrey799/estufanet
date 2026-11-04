@@ -1,0 +1,9 @@
+exp,condicao,param,n,media_ms,mediana_ms,desvio_ms,min_ms,max_ms,msgs_por_s,mbps
+A_RTT,degradada,1 cliente,100,328.505,276.271,157.058,237.458,978.11,,
+B_throughput,degradada,94 bytes/msg,100,297.44,244.882,135.096,228.987,936.022,3.4,0.003
+B_throughput,degradada,1105 bytes/msg,100,281.769,245.27,117.127,239.482,897.99,3.5,0.031
+B_throughput,degradada,10105 bytes/msg,100,324.375,280.537,142.252,240.534,936.652,3.1,0.249
+B_throughput,degradada,100105 bytes/msg,100,315.255,284.36,140.562,234.69,1346.893,3.2,2.54
+C_concorrencia,degradada,1 clientes,200,341.561,284.641,163.115,233.462,1227.158,2.9,
+C_concorrencia,degradada,2 clientes,400,339.052,283.086,163.091,224.203,1408.18,5.7,
+C_concorrencia,degradada,5 clientes,1000,336.135,276.936,181.822,217.837,2498.599,14.3,

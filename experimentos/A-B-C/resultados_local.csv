@@ -1,0 +1,9 @@
+exp,condicao,param,n,media_ms,mediana_ms,desvio_ms,min_ms,max_ms,msgs_por_s,mbps
+A_RTT,local,1 cliente,100,14.883,11.532,14.361,5.815,109.438,,
+B_throughput,local,94 bytes/msg,100,15.9,11.652,17.87,6.751,126.864,62.9,0.047
+B_throughput,local,1105 bytes/msg,100,15.278,11.185,16.848,5.393,109.304,65.5,0.579
+B_throughput,local,10105 bytes/msg,100,16.325,11.753,16.031,8.005,119.485,61.3,4.952
+B_throughput,local,100105 bytes/msg,100,15.621,12.137,14.341,6.482,111.666,64.0,51.265
+C_concorrencia,local,1 clientes,200,14.761,10.486,15.725,6.674,118.265,67.7,
+C_concorrencia,local,2 clientes,400,24.381,21.745,9.408,14.553,105.881,81.8,
+C_concorrencia,local,5 clientes,1000,59.341,56.943,15.238,13.896,177.49,84.0,

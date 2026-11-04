@@ -1,0 +1,8 @@
+{'exp': 'A_RTT', 'condicao': 'degradada', 'param': '1 cliente', 'n': 100, 'media_ms': 328.505, 'mediana_ms': 276.271, 'desvio_ms': 157.058, 'min_ms': 237.458, 'max_ms': 978.11}
+{'exp': 'B_throughput', 'condicao': 'degradada', 'param': '94 bytes/msg', 'n': 100, 'media_ms': 297.44, 'mediana_ms': 244.882, 'desvio_ms': 135.096, 'min_ms': 228.987, 'max_ms': 936.022, 'msgs_por_s': 3.4, 'mbps': 0.003}
+{'exp': 'B_throughput', 'condicao': 'degradada', 'param': '1105 bytes/msg', 'n': 100, 'media_ms': 281.769, 'mediana_ms': 245.27, 'desvio_ms': 117.127, 'min_ms': 239.482, 'max_ms': 897.99, 'msgs_por_s': 3.5, 'mbps': 0.031}
+{'exp': 'B_throughput', 'condicao': 'degradada', 'param': '10105 bytes/msg', 'n': 100, 'media_ms': 324.375, 'mediana_ms': 280.537, 'desvio_ms': 142.252, 'min_ms': 240.534, 'max_ms': 936.652, 'msgs_por_s': 3.1, 'mbps': 0.249}
+{'exp': 'B_throughput', 'condicao': 'degradada', 'param': '100105 bytes/msg', 'n': 100, 'media_ms': 315.255, 'mediana_ms': 284.36, 'desvio_ms': 140.562, 'min_ms': 234.69, 'max_ms': 1346.893, 'msgs_por_s': 3.2, 'mbps': 2.54}
+{'exp': 'C_concorrencia', 'condicao': 'degradada', 'param': '1 clientes', 'n': 200, 'media_ms': 341.561, 'mediana_ms': 284.641, 'desvio_ms': 163.115, 'min_ms': 233.462, 'max_ms': 1227.158, 'msgs_por_s': 2.9}
+{'exp': 'C_concorrencia', 'condicao': 'degradada', 'param': '2 clientes', 'n': 400, 'media_ms': 339.052, 'mediana_ms': 283.086, 'desvio_ms': 163.091, 'min_ms': 224.203, 'max_ms': 1408.18, 'msgs_por_s': 5.7}
+{'exp': 'C_concorrencia', 'condicao': 'degradada', 'param': '5 clientes', 'n': 1000, 'media_ms': 336.135, 'mediana_ms': 276.936, 'desvio_ms': 181.822, 'min_ms': 217.837, 'max_ms': 2498.599, 'msgs_por_s': 14.3}

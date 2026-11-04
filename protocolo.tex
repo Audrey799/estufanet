@@ -1,0 +1,286 @@
+% =====================================================================
+% PROTOCOLO DE APLICACAO - EstufaNet
+% Como usar no Overleaf:
+%  - Para testar sozinho: compile este arquivo como esta.
+%  - Para colar no relatorio: copie apenas o trecho entre
+%    "INICIO DA SECAO" e "FIM DA SECAO", e adicione ao preambulo do
+%    relatorio os pacotes e o \lstset abaixo.
+% =====================================================================
+\documentclass[12pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazilian]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage[load-configuration=abbreviations]{siunitx}
+\sisetup{output-decimal-marker={,}}
+
+% --- Configuracao dos blocos de codigo (JSON/HTTP) ---
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=single,
+  backgroundcolor=\color{gray!8},
+  inputencoding=utf8,
+  extendedchars=true,
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+           {ã}{{\~a}}1 {õ}{{\~o}}1 {ç}{{\c c}}1 {â}{{\^a}}1 {ê}{{\^e}}1
+           {Á}{{\'A}}1 {É}{{\'E}}1,
+  columns=fullflexible,
+  keepspaces=true
+}
+
+\begin{document}
+
+% ================== INICIO DA SECAO ==================
+\section{Protocolo de Aplica\c{c}\~ao}
+\label{sec:protocolo}
+
+\subsection{Vis\~ao geral}
+
+O EstufaNet define um protocolo de aplica\c{c}\~ao pr\'oprio, sobre dois
+mecanismos de transporte de aplica\c{c}\~ao que compartilham a mesma porta
+TCP 8000 do servidor:
+
+\begin{itemize}
+  \item \textbf{HTTP/1.1}, para opera\c{c}\~oes de consulta, configura\c{c}\~ao e
+        entrega da p\'agina do painel (modelo requisi\c{c}\~ao/resposta);
+  \item \textbf{WebSocket} (RFC 6455), para o fluxo cont\'inuo de leituras em
+        tempo real (conex\~ao persistente e bidirecional).
+\end{itemize}
+
+No WebSocket, todas as mensagens s\~ao \emph{frames} de texto contendo um
+objeto JSON codificado em UTF-8. O protocolo \'e orientado a mensagens e
+cada mensagem possui o campo obrigat\'orio \texttt{tipo}, que define sua
+sem\^antica. Os pap\'eis s\~ao: \textbf{sensor} (cliente que produz leituras),
+\textbf{painel} (cliente web que consome leituras) e \textbf{servidor}.
+
+\subsection{Pontos de acesso (endpoints)}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}llp{7.2cm}@{}}
+\toprule
+\textbf{Tipo} & \textbf{Endere\c{c}o} & \textbf{Fun\c{c}\~ao} \\
+\midrule
+WebSocket & \texttt{/ws} & Canal dos sensores: envio de leituras e recebimento de \texttt{ack} ou \texttt{erro}. \\
+WebSocket & \texttt{/ws/painel} & Canal do painel: recebe leituras repassadas pelo servidor. \\
+HTTP GET  & \texttt{/} & Verifica\c{c}\~ao de status do servidor. \\
+HTTP GET  & \texttt{/painel} & Entrega a p\'agina HTML do painel. \\
+HTTP GET  & \texttt{/historico} & Consulta o hist\'orico de leituras gravadas. \\
+HTTP GET  & \texttt{/alertas} & Consulta os alertas gravados. \\
+HTTP GET  & \texttt{/limiar} & Consulta o limiar de temperatura vigente. \\
+HTTP PUT  & \texttt{/limiar} & Altera o limiar de temperatura. \\
+\bottomrule
+\end{tabular}
+\caption{Pontos de acesso do servidor (porta TCP 8000).}
+\label{tab:endpoints}
+\end{table}
+
+\subsection{Mensagens WebSocket}
+
+\subsubsection{\texttt{leitura} (sensor $\rightarrow$ servidor)}
+
+Enviada pelo sensor a cada segundo, no canal \texttt{/ws}.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}llp{7.5cm}@{}}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Regra} \\
+\midrule
+\texttt{tipo}      & texto  & Obrigat\'orio; deve ser exatamente \texttt{"leitura"}. \\
+\texttt{device\_id}& texto  & Obrigat\'orio; identifica o dispositivo (ex.: \texttt{"sensor1"}). \\
+\texttt{token}     & texto  & Obrigat\'orio; deve corresponder ao token cadastrado para o \texttt{device\_id}. \\
+\texttt{temp}      & n\'umero & Obrigat\'orio; temperatura em \si{\celsius}, no intervalo $[-40,\,80]$. \\
+\texttt{umid}      & n\'umero & Obrigat\'orio; umidade relativa em \%, no intervalo $[0,\,100]$. \\
+\bottomrule
+\end{tabular}
+\caption{Campos da mensagem \texttt{leitura}. Valores booleanos n\~ao s\~ao aceitos como n\'umero. Campos extras s\~ao ignorados (o experimento de \emph{throughput} usa um campo \texttt{pad} apenas para aumentar o tamanho da mensagem).}
+\end{table}
+
+\begin{lstlisting}
+{"tipo": "leitura", "device_id": "sensor1", "token": "tk-sensor1",
+ "temp": 27.3, "umid": 61.2}
+\end{lstlisting}
+
+\subsubsection{\texttt{ack} (servidor $\rightarrow$ sensor)}
+
+Resposta a toda leitura v\'alida. Confirma o recebimento e o armazenamento, e
+informa se a leitura gerou alerta.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}llp{7.5cm}@{}}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Descri\c{c}\~ao} \\
+\midrule
+\texttt{tipo}   & texto & Sempre \texttt{"ack"}. \\
+\texttt{status} & texto & Sempre \texttt{"ok"}. \\
+\texttt{alerta} & booleano & \texttt{true} se \texttt{temp} for estritamente maior que o limiar vigente. \\
+\texttt{ts}     & texto & Instante de recebimento no servidor, formato ISO 8601 (ex.: \texttt{2026-11-03T12:36:22}). \\
+\bottomrule
+\end{tabular}
+\caption{Campos da mensagem \texttt{ack}.}
+\end{table}
+
+\begin{lstlisting}
+{"tipo": "ack", "status": "ok", "alerta": false, "ts": "2026-11-03T12:36:22"}
+\end{lstlisting}
+
+\subsubsection{\texttt{erro} (servidor $\rightarrow$ sensor)}
+
+Enviada quando a mensagem recebida \'e rejeitada. A conex\~ao \textbf{permanece aberta}
+ap\'os o erro, e o sensor pode enviar a pr\'oxima mensagem.
+
+\begin{lstlisting}
+{"tipo": "erro", "codigo": 401, "mensagem": "device_id ou token inválido"}
+\end{lstlisting}
+
+\subsubsection{\texttt{leitura} repassada (servidor $\rightarrow$ painel)}
+
+Para cada leitura aceita, o servidor envia a todos os pain\'eis conectados em
+\texttt{/ws/painel} um evento com o \texttt{tipo} \texttt{"leitura"} acrescido de
+\texttt{ts} e \texttt{alerta}. O painel apenas recebe; qualquer texto enviado
+por ele \'e lido e descartado (serve para manter a conex\~ao aberta).
+
+\begin{lstlisting}
+{"tipo": "leitura", "device_id": "sensor1", "temp": 33.8, "umid": 58.0,
+ "ts": "2026-11-03T12:36:19", "alerta": true}
+\end{lstlisting}
+
+\subsection{C\'odigos de erro}
+
+O servidor valida cada mensagem em ordem fixa: formato JSON, autentica\c{c}\~ao e
+campos. Na primeira falha, responde com o c\'odigo correspondente e descarta a
+mensagem (nada \'e gravado).
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{@{}cp{5.2cm}p{5.5cm}@{}}
+\toprule
+\textbf{C\'odigo} & \textbf{Causa} & \textbf{Exemplo} \\
+\midrule
+400 & Mensagem n\~ao \'e JSON v\'alido, ou n\~ao \'e um objeto JSON. & \texttt{abc}, \texttt{[1,2]} \\
+401 & \texttt{device\_id} ausente/desconhecido ou token incorreto. & token \texttt{"errado"} \\
+422 & \texttt{tipo} diferente de \texttt{"leitura"}, ou \texttt{temp}/\texttt{umid} ausente, n\~ao num\'erico ou fora da faixa. & \texttt{"temp": 200} \\
+\bottomrule
+\end{tabular}
+\caption{C\'odigos de erro do canal WebSocket (reaproveitam a numera\c{c}\~ao do HTTP).}
+\end{table}
+
+\subsection{Sequ\^encia de opera\c{c}\~oes}
+
+\paragraph{Sensor.}
+\begin{enumerate}
+  \item O sensor abre uma conex\~ao TCP com o servidor (porta 8000) e realiza o
+        \emph{handshake} WebSocket: \texttt{GET /ws} com
+        \texttt{Upgrade: websocket}, e o servidor responde
+        \texttt{101 Switching Protocols}.
+  \item O sensor envia uma mensagem \texttt{leitura}.
+  \item O servidor valida (400, 401, 422). Se v\'alida, grava a leitura no banco,
+        verifica o limiar, grava o alerta se houver, repassa o evento aos
+        pain\'eis e responde \texttt{ack}. Se inv\'alida, responde \texttt{erro}.
+  \item O sensor aguarda a resposta (o que permite medir o RTT da aplica\c{c}\~ao),
+        espera 1~s e repete a partir do passo 2.
+  \item Se a conex\~ao cair, o servidor registra a desconex\~ao em log; o sensor
+        espera 3~s e tenta reconectar.
+\end{enumerate}
+
+\paragraph{Painel.}
+\begin{enumerate}
+  \item Ao abrir \texttt{GET /painel}, o navegador recebe o HTML e consulta por HTTP
+        \texttt{GET /historico}, \texttt{GET /alertas} e \texttt{GET /limiar}.
+  \item O painel abre o WebSocket \texttt{/ws/painel} e passa a receber as leituras
+        em tempo real. Se a conex\~ao cair, tenta reconectar a cada 3~s.
+  \item Para alterar o limite, o painel envia \texttt{PUT /limiar}.
+\end{enumerate}
+
+\begin{lstlisting}
+Sensor                         Servidor                      Painel
+  | --- GET /ws (Upgrade) ------> |                            |
+  | <-- 101 Switching Protocols - |                            |
+  | --- leitura ----------------> | valida, grava, alerta      |
+  |                               | --- leitura (evento) ----> |
+  | <-- ack (ou erro) ----------- |                            |
+  |   ... a cada 1 s ...          |                            |
+\end{lstlisting}
+
+\subsection{Opera\c{c}\~oes HTTP}
+
+\paragraph{\texttt{GET /historico}} Par\^ametros opcionais:
+\texttt{device\_id} (filtra por dispositivo) e \texttt{limite} (inteiro de 1 a 1000,
+padr\~ao 50). Devolve uma lista JSON, da leitura mais recente para a mais antiga.
+
+\begin{lstlisting}
+GET /historico?device_id=sensor1&limite=2 HTTP/1.1
+
+HTTP/1.1 200 OK
+[{"id": 812, "device_id": "sensor1", "temp": 27.3, "umid": 61.2,
+  "ts": "2026-11-03T12:36:22"},
+ {"id": 810, "device_id": "sensor1", "temp": 24.1, "umid": 55.0,
+  "ts": "2026-11-03T12:36:20"}]
+\end{lstlisting}
+
+\paragraph{\texttt{GET /alertas}} Par\^ametro opcional \texttt{limite} (1 a 1000, padr\~ao 50).
+Cada item cont\'em \texttt{id}, \texttt{device\_id}, \texttt{temp}, \texttt{limiar} (valor vigente no
+momento do alerta) e \texttt{ts}.
+
+\paragraph{\texttt{GET /limiar} e \texttt{PUT /limiar}} O corpo do \texttt{PUT} \'e um
+objeto JSON com o campo num\'erico \texttt{valor}. Ambos respondem
+\texttt{\{"temp": <limiar>\}}.
+
+\begin{lstlisting}
+PUT /limiar HTTP/1.1
+Content-Type: application/json
+
+{"valor": 25}
+
+HTTP/1.1 200 OK
+{"temp": 25.0}
+\end{lstlisting}
+
+Em requisi\c{c}\~oes HTTP com par\^ametros ou corpo inv\'alidos (por exemplo,
+\texttt{limite=0} ou \texttt{valor} n\~ao num\'erico), o servidor responde
+\texttt{422 Unprocessable Entity}, com detalhes no corpo.
+
+\subsection{Regras de neg\'ocio}
+
+\begin{itemize}
+  \item \textbf{Alerta:} gerado quando \texttt{temp} $>$ limiar (compara\c{c}\~ao estrita). O limiar
+        inicial \'e \SI{30.0}{\celsius}; \'e global (vale para todos os sensores) e fica em mem\'oria,
+        voltando ao padr\~ao quando o servidor reinicia.
+  \item \textbf{Autentica\c{c}\~ao:} cada dispositivo possui um token fixo
+        (\texttt{sensor1}~a~\texttt{sensor5}, token igual a \texttt{tk-} mais o nome).
+  \item \textbf{Persist\^encia:} banco SQLite com as tabelas \texttt{leituras}
+        (\texttt{id}, \texttt{device\_id}, \texttt{temp}, \texttt{umid}, \texttt{ts}) e \texttt{alertas}
+        (\texttt{id}, \texttt{device\_id}, \texttt{temp}, \texttt{limiar}, \texttt{ts}).
+  \item \textbf{Registros (logs):} todo evento relevante (conex\~ao, leitura, alerta,
+        erro, desconex\~ao, mudan\c{c}a de limiar) \'e escrito com \emph{timestamp}
+        no console e no arquivo \texttt{estufanet.log}.
+\end{itemize}
+
+\subsection{Limita\c{c}\~oes conhecidas do protocolo}
+
+\begin{itemize}
+  \item O tr\'afego n\~ao \'e cifrado (\texttt{ws://} e \texttt{http://}, sem TLS); tokens e
+        leituras trafegam em texto claro, o que \'e vis\'ivel nas capturas do Wireshark.
+  \item Os tokens s\~ao fixos e est\~ao no c\'odigo-fonte; em produ\c{c}\~ao seriam
+        gerados por dispositivo e armazenados de forma segura.
+  \item As rotas HTTP n\~ao exigem autentica\c{c}\~ao: qualquer cliente com acesso \`a porta
+        8000 pode ler o hist\'orico e alterar o limiar.
+  \item O protocolo n\~ao possui numera\c{c}\~ao de mensagens nem reenvio na camada de
+        aplica\c{c}\~ao; a confiabilidade \'e delegada ao TCP. Se o sensor cair antes do
+        \texttt{ack}, n\~ao h\'a como saber se a leitura foi gravada.
+\end{itemize}
+% =================== FIM DA SECAO ===================
+
+\end{document}

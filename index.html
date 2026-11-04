@@ -1,105 +1,703 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EstufaNet - Painel</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-  body { font-family: Arial, sans-serif; max-width: 900px; margin: 20px auto; padding: 0 10px; }
-  .alerta { color: #b00020; }
-  #status { font-weight: bold; }
+:root {
+  --bg-dark: #111827;
+  --bg-card: #1f2937;
+  --bg-input: #374151;
+  --text: #f9fafb;
+  --text-muted: #9ca3af;
+  --primary: #3b82f6;
+  --danger: #ef4444;
+  --success: #10b981;
+  --border: #374151;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text);
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 16px 24px;
+  background: var(--bg-card);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  color: var(--primary);
+}
+
+.status {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.status.on {
+  background: rgba(16,185,129,0.2);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.status.off {
+  background: rgba(239,68,68,0.2);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border);
+  width: 100%;
+}
+
+.card h3 {
+  margin: 0 0 20px 0;
+  font-size: 1.3rem;
+  color: var(--text);
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--border);
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.controls label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+input {
+  padding: 10px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  width: 100px;
+  font-size: 1rem;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+button {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+.msg {
+  font-size: 0.9rem;
+  color: var(--success);
+  margin-left: 10px;
+  display: none;
+}
+
+/* GRÁFICO CORRIGIDO */
+
+.chart-box {
+  position: relative;
+  width: 100%;
+  height: 450px;
+  min-width: 0;
+}
+
+.chart-box canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: rgba(239,239,239,0.1);
+  border-left: 4px solid var(--danger);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.alert-item .icon {
+  font-size: 1.2rem;
+}
+
+.alert-item .content strong {
+  color: var(--danger);
+  font-size: 1.1rem;
+}
+
+.alert-item .content small {
+  color: var(--text-muted);
+  display: block;
+  margin-top: 4px;
+}
+
+.empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 30px;
+  font-style: italic;
+}
+
+@media (max-width: 640px) {
+  body {
+    padding: 10px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .chart-box {
+    height: 300px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+}
 </style>
 </head>
+
 <body>
-<h1>EstufaNet - Painel</h1>
-<p>Tempo real: <span id="status">conectando...</span></p>
 
-<p>
-  Limiar de temperatura (°C):
-  <input id="lim" type="number" step="0.5" style="width:70px">
-  <button onclick="salvarLimiar()">Salvar</button>
-  <span id="msgLim"></span>
-</p>
+<div class="container">
 
-<canvas id="grafico" height="110"></canvas>
+  <div class="header">
+    <h1>🌱 EstufaNet</h1>
+    <span id="status" class="status off">
+      Desconectado
+    </span>
+  </div>
 
-<h2>Alertas recentes</h2>
-<ul id="alertas"></ul>
+  <div class="card">
+    <div class="controls">
+
+      <label>Limiar (°C):</label>
+
+      <input
+        id="lim"
+        type="number"
+        step="0.5"
+        placeholder="30"
+      >
+
+      <button onclick="salvarLimiar()">
+        💾 Salvar
+      </button>
+
+      <span id="msgLim" class="msg">
+        ✓ Salvo!
+      </span>
+
+    </div>
+  </div>
+
+  <div class="card">
+
+    <h3>📊 Monitoramento em Tempo Real</h3>
+
+    <div class="chart-box">
+      <canvas id="grafico"></canvas>
+    </div>
+
+  </div>
+
+  <div class="card">
+
+    <h3>⚠️ Alertas Recentes</h3>
+
+    <div id="alertas">
+      <div class="empty">
+        Nenhum alerta registrado
+      </div>
+    </div>
+
+  </div>
+
+</div>
 
 <script>
-const cores = ["#e6194b", "#3cb44b", "#4363d8", "#f58231", "#911eb4"];
-const series = {};   // device_id -> dataset do gráfico
 
-const grafico = new Chart(document.getElementById("grafico"), {
-  type: "scatter",
-  data: { datasets: [] },
-  options: {
-    animation: false,
-    scales: {
-      x: { ticks: { callback: v => new Date(v).toLocaleTimeString() } },
-      y: { title: { display: true, text: "Temperatura (°C)" } }
-    }
+// CONFIGURAÇÕES DOS SENSORES
+
+const cores = [
+  "#3b82f6",
+  "#10b981",
+  "#ef4444",
+  "#f59e0b",
+  "#8b5cf6"
+];
+
+const series = {};
+
+// CONVERTER DATA PARA TIMESTAMP
+
+function converterData(data) {
+
+  if (typeof data === "number") {
+    return data < 1e12 ? data * 1000 : data;
   }
-});
+
+  if (typeof data === "string" && /^\d+$/.test(data)) {
+    const numero = Number(data);
+    return numero < 1e12 ? numero * 1000 : numero;
+  }
+
+  return Date.parse(data);
+}
+
+// CONFIGURAÇÃO DO GRÁFICO
+
+const grafico = new Chart(
+  document.getElementById("grafico"),
+  {
+    type: "line",
+
+    data: {
+      datasets: []
+    },
+
+    options: {
+
+      responsive: true,
+
+      maintainAspectRatio: false,
+
+      animation: false,
+
+      normalized: true,
+
+      interaction: {
+        mode: "nearest",
+        intersect: false
+      },
+
+      plugins: {
+
+        legend: {
+          position: "top",
+          labels: {
+            color: "#9ca3af",
+            font: {
+              size: 12
+            }
+          }
+        },
+
+        tooltip: {
+          callbacks: {
+            title: function(items) {
+              if (!items.length) return "";
+
+              return new Date(
+                items[0].parsed.x
+              ).toLocaleString("pt-BR");
+            },
+
+            label: function(context) {
+              return context.dataset.label + ": " +
+                context.parsed.y.toFixed(1) + " °C";
+            }
+          }
+        }
+
+      },
+
+      scales: {
+
+        // CORREÇÃO PRINCIPAL:
+        // O TEMPO AGORA É UM EIXO NUMÉRICO.
+
+        x: {
+
+          type: "linear",
+
+          grid: {
+            color: "#374151"
+          },
+
+          title: {
+            display: true,
+            text: "Horário das medições",
+            color: "#9ca3af"
+          },
+
+          ticks: {
+
+            color: "#9ca3af",
+
+            maxTicksLimit: 10,
+
+            callback: function(value) {
+
+              return new Date(
+                Number(value)
+              ).toLocaleTimeString("pt-BR");
+
+            }
+
+          }
+
+        },
+
+        y: {
+
+          type: "linear",
+
+          title: {
+            display: true,
+            text: "Temperatura (°C)",
+            color: "#9ca3af"
+          },
+
+          grid: {
+            color: "#374151"
+          },
+
+          ticks: {
+            color: "#9ca3af"
+          },
+
+          grace: "5%"
+
+        }
+
+      }
+
+    }
+
+  }
+);
+
+
+// ADICIONAR PONTO AO GRÁFICO
 
 function addPonto(d) {
-  if (!series[d.device_id]) {
-    const cor = cores[Object.keys(series).length % cores.length];
-    series[d.device_id] = { label: d.device_id, data: [], showLine: true,
-                            borderColor: cor, backgroundColor: cor, pointRadius: 2 };
-    grafico.data.datasets.push(series[d.device_id]);
+
+  const timestamp = converterData(d.ts);
+  const temperatura = Number(d.temp);
+
+  // IGNORAR DADOS INVÁLIDOS
+
+  if (
+    !Number.isFinite(timestamp) ||
+    !Number.isFinite(temperatura)
+  ) {
+    console.warn("Leitura inválida:", d);
+    return;
   }
+
+  // CRIAR SÉRIE DO SENSOR SE NECESSÁRIO
+
+  if (!series[d.device_id]) {
+
+    const cor = cores[
+      Object.keys(series).length % cores.length
+    ];
+
+    series[d.device_id] = {
+
+      label: d.device_id,
+
+      data: [],
+
+      borderColor: cor,
+
+      backgroundColor: cor,
+
+      pointBackgroundColor: cor,
+
+      pointRadius: 3,
+
+      pointHoverRadius: 6,
+
+      borderWidth: 2,
+
+      tension: 0.3,
+
+      fill: false
+
+    };
+
+    grafico.data.datasets.push(
+      series[d.device_id]
+    );
+
+  }
+
   const ds = series[d.device_id];
-  ds.data.push({ x: Date.parse(d.ts), y: d.temp });
-  if (ds.data.length > 60) ds.data.shift();
-  grafico.update();
+
+  // ADICIONAR NOVA LEITURA
+
+  ds.data.push({
+
+    x: timestamp,
+
+    y: temperatura
+
+  });
+
+  // MANTER SOMENTE AS ÚLTIMAS 60 LEITURAS
+
+  if (ds.data.length > 60) {
+    ds.data.shift();
+  }
+
+  // ATUALIZAR SEM ANIMAÇÃO
+
+  grafico.update("none");
+
 }
+
+
+// ADICIONAR ALERTA
 
 function addAlerta(a) {
-  const li = document.createElement("li");
-  li.className = "alerta";
-  li.textContent = `${a.ts} - ${a.device_id}: ${a.temp} °C`;
+
   const lista = document.getElementById("alertas");
-  lista.prepend(li);
-  while (lista.children.length > 10) lista.removeChild(lista.lastChild);
+
+  if (lista.querySelector(".empty")) {
+    lista.innerHTML = "";
+  }
+
+  const div = document.createElement("div");
+
+  div.className = "alert-item";
+
+  div.innerHTML = `
+    <span class="icon">🔥</span>
+
+    <div class="content">
+
+      <strong>${a.temp} °C</strong>
+      em ${a.device_id}
+
+      <small>
+        ${new Date(a.ts).toLocaleString("pt-BR")}
+      </small>
+
+    </div>
+  `;
+
+  lista.prepend(div);
+
+  if (lista.children.length > 10) {
+    lista.removeChild(lista.lastChild);
+  }
+
 }
 
-// HTTP: histórico, alertas e limiar ao abrir a página
-fetch("/historico?limite=100").then(r => r.json())
-  .then(l => l.reverse().forEach(addPonto));
-fetch("/alertas?limite=10").then(r => r.json())
-  .then(l => l.reverse().forEach(addAlerta));
-fetch("/limiar").then(r => r.json())
-  .then(d => document.getElementById("lim").value = d.temp);
 
-// HTTP: alterar limiar
+// CARREGAR HISTÓRICO
+
+fetch("/historico?limite=100")
+
+  .then(r => r.json())
+
+  .then(l => {
+
+    l.reverse().forEach(addPonto);
+
+  })
+
+  .catch(err => {
+    console.error("Erro ao carregar histórico:", err);
+  });
+
+
+// CARREGAR ALERTAS
+
+fetch("/alertas?limite=10")
+
+  .then(r => r.json())
+
+  .then(l => {
+
+    l.reverse().forEach(addAlerta);
+
+  })
+
+  .catch(err => {
+    console.error("Erro ao carregar alertas:", err);
+  });
+
+
+// CARREGAR LIMIAR
+
+fetch("/limiar")
+
+  .then(r => r.json())
+
+  .then(d => {
+
+    document.getElementById("lim").value = d.temp;
+
+  })
+
+  .catch(err => {
+    console.error("Erro ao carregar limiar:", err);
+  });
+
+
+// SALVAR LIMIAR
+
 function salvarLimiar() {
-  const valor = parseFloat(document.getElementById("lim").value);
+
+  const valor = parseFloat(
+    document.getElementById("lim").value
+  );
+
   fetch("/limiar", {
+
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ valor })
-  }).then(r => r.json())
-    .then(d => document.getElementById("msgLim").textContent = "salvo: " + d.temp);
+
+    headers: {
+      "Content-Type": "application/json"
+    },
+
+    body: JSON.stringify({
+      valor: valor
+    })
+
+  })
+
+  .then(r => r.json())
+
+  .then(() => {
+
+    const msg = document.getElementById("msgLim");
+
+    msg.style.display = "inline";
+
+    setTimeout(() => {
+      msg.style.display = "none";
+    }, 3000);
+
+  })
+
+  .catch(err => {
+    console.error("Erro ao salvar limiar:", err);
+  });
+
 }
 
-// WebSocket: tempo real
+
+// CONEXÃO WEBSOCKET
+
 function conectar() {
-  const ws = new WebSocket("ws://" + location.host + "/ws/painel");
-  ws.onopen = () => document.getElementById("status").textContent = "conectado";
+
+  const protocolo =
+    location.protocol === "https:" ? "wss://" : "ws://";
+
+  const ws = new WebSocket(
+    protocolo + location.host + "/ws/painel"
+  );
+
+  ws.onopen = () => {
+
+    const s = document.getElementById("status");
+
+    s.textContent = "Conectado";
+
+    s.className = "status on";
+
+  };
+
+
   ws.onmessage = e => {
+
     const d = JSON.parse(e.data);
+
     if (d.tipo === "leitura") {
+
       addPonto(d);
-      if (d.alerta) addAlerta(d);
+
+      if (d.alerta) {
+        addAlerta(d);
+      }
+
     }
+
   };
+
+
   ws.onclose = () => {
-    document.getElementById("status").textContent = "desconectado, tentando de novo...";
+
+    const s = document.getElementById("status");
+
+    s.textContent = "Reconectando...";
+
+    s.className = "status off";
+
     setTimeout(conectar, 3000);
+
   };
+
+
+  ws.onerror = () => {
+    ws.close();
+  };
+
 }
+
+
+// INICIAR CONEXÃO
+
 conectar();
+
 </script>
+
 </body>
 </html>
