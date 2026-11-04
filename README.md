@@ -1,8 +1,8 @@
 # EstufaNet
 
-Sistema distribuído de monitoramento em tempo real de sensores simulados
-(temperatura e umidade), desenvolvido para a disciplina CIC0124 - Redes de
-Computadores (UnB), Projeto 1 - 2026.
+Sistema de monitoramento em tempo real de sensores simulados
+(temperatura e umidade) EstufaNet, desenvolvido para a disciplina CIC0124 - Redes de
+Computadores (UnB), Projeto 1 - 2026/2.
 
 ## Integrantes
 
