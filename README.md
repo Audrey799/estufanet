@@ -217,4 +217,4 @@ e a ficha com data, filtros, cenário e observações.
 - V. Paxson, M. Allman, J. Chu e M. Sargent. *Computing TCP's Retransmission Timer*. IETF, RFC 6298, 2011. https://www.rfc-editor.org/rfc/rfc6298
 - T. Bray. *The JavaScript Object Notation (JSON) Data Interchange Format*. IETF, RFC 8259, 2017. https://www.rfc-editor.org/rfc/rfc8259
 -  C. Sanders. *Practical Packet Analysis: Using Wireshark to Solve Real-World Network Problems*. 3. ed. San Francisco: No Starch Press, 2017.
-- S. Hemminger. *Network Emulation with NetEm*. linux.conf.au, 2005.
+  - jagt. *clumsy: network condition simulator for Windows*. https://jagt.github.io/clumsy/ (acesso em 3 nov. 2026).
