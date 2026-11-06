@@ -192,7 +192,7 @@ e a ficha com data, filtros, cenário e observações.
 - **Bibliotecas:** FastAPI, Uvicorn, websockets, SQLite (módulo `sqlite3` do Python), Chart.js (via CDN no painel),
   matplotlib (gráficos).
 - **Ferramentas:** Python, Thonny, Git e GitHub Desktop, Wireshark (Npcap), Clumsy, Excel, Overleaf.
-- **Inteligência artificial:** foi usado um assistente de IA (Claude, da Anthropic) como apoio para explicar
+- **Inteligência artificial:** foi usado um assistente de IA (Claude, da Anthropic e Qwen) como apoio para explicar
   conceitos de redes, gerar versões iniciais do código e dos scripts de experimento, e revisar textos. O grupo
   executou, testou e adaptou todo o código, realizou os experimentos e as capturas, e analisou os resultados.
 
