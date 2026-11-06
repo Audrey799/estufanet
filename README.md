@@ -16,7 +16,7 @@ Departamento de Ciência da Computação, Profa. Priscila Solís.
 
 ## Vídeo de demonstração
 
-[link do video] 
+[https://youtu.be/_yyrfPsCFj4] 
 
 ## Relatório
 
